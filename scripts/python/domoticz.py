@@ -28,32 +28,25 @@ And you also have access to more:
 """
 try:
 	import domoticz_ #
+	def log(*args):
+		domoticz_.log(" ".join([str(k) for k in args]))
+	def error(*args):
+		domoticz_.error(" ".join([str(k) for k in args]))
 except:
-	pass
+	def log(*args):
+		print " ".join([str(k) for k in args])
+	def error(*args):
+		print "Error" + " ".join([str(k) for k in args])
+
 import reloader
 import datetime
 import re
 
-#def _log(type, text): # 'virtual' function, will be modified to call
+#def _log(text): # 'virtual' function, will be modified to call
 #	pass
-
-def log(*args):
-	domoticz_.log(0, " ".join([str(k) for k in args]))
-
-def error(*args):
-	domoticz_.log(1, " ".join([str(k) for k in args]))
 
 reloader.auto_reload(__name__)
 
-# this will be filled in by the c++ part
-devices = {}
-device = None
-
-
-testing = False
-commands = []
-
-event_sytem = None # will be filled in by domoticz
 def command(name, action, file):
 	if testing:
 		commands.append((name, action))
@@ -68,7 +61,7 @@ def process_commands():
 			print "\tsetting %s On" % name
 		elif action == "Off":
 			device.n_value = 0
-			print "\tsetting %s On" % name
+			print "\tsetting %s Off" % name
 		else:
 			print "unknown command", name, action
 	del commands[:]
@@ -130,3 +123,17 @@ class Device(object):
 			command(self.name, "%s AFTER %d" % (action, after), __file__)
 		else:
 			command(self.name, action, __file__)
+
+class UserVariables(dict):
+	def __setitem__(self,key,value):
+		dict.__setitem__(self,key,value)
+
+# this will be filled in by the c++ part
+devices = {}
+device = None
+user_variables = UserVariables()
+
+testing = False
+commands = []
+
+event_system = None # will be filled in by domoticz

@@ -2060,28 +2060,23 @@ void CEventSystem::EvaluatePython(const std::string &reason, const std::string &
 	EvaluatePython(reason, filename, PyString, 0, "", 0, "", "", 0);
 }
 
-
-static int numargs=0;
-
-/* Return the number of arguments of the application command line */
-static PyObject*
-PyDomoticz_log(PyObject *self, PyObject *args)
+static object PythonLog(str message)
 {
-	char* msg;
-	int type;
-    if(!PyArg_ParseTuple(args, "is", &type, &msg))
-        return NULL;
-	_log.Log((_eLogLevel)type, msg);
-	Py_INCREF(Py_None);
-    return Py_None;
-
+	_log.Log(LOG_NORM, extract<const char*>(message));
+	return object();
 }
 
-static PyMethodDef DomoticzMethods[] = {
-    {"log", PyDomoticz_log, METH_VARARGS,  "log to Domoticz."},
-    {NULL, NULL, 0, NULL}
-};
+static object PythonError(str message)
+{
+	_log.Log(LOG_ERROR, extract<const char*>(message));
+	return object();
+}
 
+BOOST_PYTHON_MODULE(domoticz_)
+{
+    def("log", PythonLog);
+    def("error", PythonError);
+}
 
 // from https://gist.github.com/octavifs/5362297
 
@@ -2115,7 +2110,8 @@ void CEventSystem::EvaluatePython(const std::string &reason, const std::string &
 	if(!Py_IsInitialized()) {
 		Py_SetProgramName((char*)Python_exe); // will this cast lead to problems ?
 		Py_Initialize();
-		Py_InitModule("domoticz_", DomoticzMethods);
+		PyImport_AppendInittab("domoticz_", &initdomoticz_);
+		import("domoticz_");
 		// TODO: may have a small memleak, remove references in destructor
 		PyObject* sys = PyImport_ImportModule("sys");
 		PyObject *path = PyObject_GetAttrString(sys, "path");
@@ -2127,7 +2123,7 @@ void CEventSystem::EvaluatePython(const std::string &reason, const std::string &
 			;
 	}
 
-	FILE* PythonScriptFile = fopen(filename.c_str(), "r");
+	//FILE* PythonScriptFile = fopen(filename.c_str(), "r");
 	object main_module = import("__main__");
 	object main_namespace = dict(main_module.attr("__dict__")).copy();
 
@@ -2139,6 +2135,7 @@ void CEventSystem::EvaluatePython(const std::string &reason, const std::string &
 
 		//object alldevices = dict();
 		object devices = domoticz_module.attr("devices");
+		object user_variables = domoticz_module.attr("user_variables");
 		object domoticz_namespace = domoticz_module.attr("__dict__");
 
 		domoticz_namespace["event_system"] = ptr(this);
@@ -2205,8 +2202,6 @@ void CEventSystem::EvaluatePython(const std::string &reason, const std::string &
 		}
 		main_namespace["Security"] = secstatusw;*/
 
-		// put variables in user_variables dict, but also in the namespace
-		object user_variables = dict();
 		{
 			typedef std::map<unsigned long long, _tUserVariable>::iterator it_var;
 			for (it_var iterator = m_uservariables.begin(); iterator != m_uservariables.end(); ++iterator) {
@@ -2267,8 +2262,8 @@ void CEventSystem::EvaluatePython(const std::string &reason, const std::string &
 		else
 			_log.Log(LOG_ERROR, "%s",formatted_str.c_str());
 	}
-	if (PythonScriptFile!=NULL)
-		fclose(PythonScriptFile);
+	//if (PythonScriptFile!=NULL)
+	//	fclose(PythonScriptFile);
 	//Py_Finalize();
 }
 #endif // ENABLE_PYTHON
