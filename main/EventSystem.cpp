@@ -2060,15 +2060,16 @@ void CEventSystem::EvaluatePython(const std::string &reason, const std::string &
 	EvaluatePython(reason, filename, PyString, 0, "", 0, "", "", 0);
 }
 
-static object PythonLog(_eLogLevel level,str message)
+// static function, avoid variadic arguments
+static void PythonLog(_eLogLevel level, const char* message)
 {
-	_log.Log(level, extract<const char*>(message));
-	return object();
+	_log.Log(level, message);
 }
 
-static object PythonGetUserVariable(str varname)
+// return object to enable returning different Python object types
+static object PythonGetUserVariable(std::string varname)
 {
-	std::vector<std::string> sd = m_sql.GetUserVariable(extract<std::string>(varname));
+	std::vector<std::string> sd = m_sql.GetUserVariable(varname);
 	if (sd.size() > 0)
 	{
 		int type = atoi(sd[2].c_str());
