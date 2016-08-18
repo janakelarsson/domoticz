@@ -7006,6 +7006,12 @@ std::vector<std::vector<std::string> > CSQLHelper::GetUserVariables()
 	return safe_query("SELECT ID,Name,ValueType,Value,LastUpdate FROM UserVariables");
 }
 
+std::vector<std::string> CSQLHelper::GetUserVariable(const std::string &varname)
+{
+	std::vector<std::vector<std::string> > result = safe_query("SELECT ID,Name,ValueType,Value,LastUpdate FROM UserVariables WHERE (Name == '%q')", varname.c_str());
+	return result.size() > 0 ? result[0] : std::vector<std::string>();
+}
+
 bool CSQLHelper::CheckDate(const std::string &sDate, int& d, int& m, int& y)
 {
 	std::istringstream is(sDate);

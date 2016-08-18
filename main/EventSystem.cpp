@@ -2060,22 +2060,46 @@ void CEventSystem::EvaluatePython(const std::string &reason, const std::string &
 	EvaluatePython(reason, filename, PyString, 0, "", 0, "", "", 0);
 }
 
-static object PythonLog(str message)
+static object PythonLog(_eLogLevel level,str message)
 {
-	_log.Log(LOG_NORM, extract<const char*>(message));
+	_log.Log(level, extract<const char*>(message));
 	return object();
 }
 
-static object PythonError(str message)
+static object PythonGetUserVariable(str varname)
 {
-	_log.Log(LOG_ERROR, extract<const char*>(message));
+	std::vector<std::string> sd = m_sql.GetUserVariable(extract<std::string>(varname));
+	if (sd.size() > 0)
+	{
+		int type = atoi(sd[2].c_str());
+		if (type == 0)
+		{
+			// Integer
+			return long_(sd[3]);
+		}
+		else if (type == 1)
+		{
+			// Float
+			return object(atof(sd[3].c_str()));
+		}
+		else
+		{
+			//String,Date,Time
+			return str(sd[3]);
+		}
+	}
 	return object();
 }
 
 BOOST_PYTHON_MODULE(domoticz_)
 {
+    enum_<_eLogLevel>("loglevel")
+        .value("norm", LOG_NORM)
+        .value("status", LOG_STATUS)
+        .value("error", LOG_ERROR)
+        ;
     def("log", PythonLog);
-    def("error", PythonError);
+	def("getuservariable",PythonGetUserVariable);
 }
 
 // from https://gist.github.com/octavifs/5362297

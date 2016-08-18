@@ -29,21 +29,18 @@ And you also have access to more:
 try:
 	import domoticz_ #
 	def log(*args):
-		domoticz_.log(" ".join([str(k) for k in args]))
+		domoticz_.log(domoticz_.loglevel.norm," ".join([str(k) for k in args]))
 	def error(*args):
-		domoticz_.error(" ".join([str(k) for k in args]))
+		domoticz_.log(domoticz_.loglevel.error," ".join([str(k) for k in args]))
 except:
 	def log(*args):
 		print " ".join([str(k) for k in args])
 	def error(*args):
-		print "Error" + " ".join([str(k) for k in args])
+		print "Error: " + " ".join([str(k) for k in args])
 
 import reloader
 import datetime
 import re
-
-#def _log(text): # 'virtual' function, will be modified to call
-#	pass
 
 reloader.auto_reload(__name__)
 
