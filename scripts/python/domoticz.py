@@ -32,6 +32,18 @@ try:
 		domoticz_.log(domoticz_.loglevel.norm," ".join([str(k) for k in args]))
 	def error(*args):
 		domoticz_.log(domoticz_.loglevel.error," ".join([str(k) for k in args]))
+	class UserVariables(dict):
+		def __getitem__(self,key):
+			return domoticz_.getuservariable(key)
+		def __setitem__(self,key,value):
+			if type(value)==int:
+				value=long(value)
+			oldvalue = domoticz_.getuservariable(key)
+			log("setting uservariable",key,"to",value,"was",oldvalue)
+			if oldvalue==None or type(oldvalue)==type(value):
+				domoticz_.setuservariable(key,value)
+			else:
+				raise ValueError("Attempt to assign value of type %s to user_variable of type %s"%(str(type(value)),str(type(oldvalue))))
 except:
 	def log(*args):
 		print " ".join([str(k) for k in args])
@@ -121,9 +133,6 @@ class Device(object):
 		else:
 			command(self.name, action, __file__)
 
-class UserVariables(dict):
-	def __setitem__(self,key,value):
-		dict.__setitem__(self,key,value)
 
 # this will be filled in by the c++ part
 devices = {}

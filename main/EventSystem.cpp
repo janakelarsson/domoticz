@@ -40,6 +40,7 @@ extern "C" {
 
 #ifdef ENABLE_PYTHON
 #include <boost/python.hpp>
+#include <boost/python/raw_function.hpp>
 using namespace boost::python;
 #endif
 
@@ -2092,6 +2093,30 @@ static object PythonGetUserVariable(std::string varname)
 	return object();
 }
 
+static void PythonSetUserVariable(std::string varname, object varvalue)
+{
+	std::vector<std::string> sd = m_sql.GetUserVariable(varname);
+	if (sd.size() > 0)
+	{
+		m_sql.UpdateUserVariable(sd[0],sd[1],sd[2],extract<std::string>(str(varvalue)),false);
+	}
+	else
+	{
+		std::string vartype="2";
+		extract<float>isfloat(varvalue);
+		if (isfloat.check())
+		{
+			vartype="1";
+		}
+		extract<long>islong(varvalue);
+		if (islong.check())
+		{
+			vartype="0";
+		}
+		m_sql.SaveUserVariable(varname,vartype,extract<std::string>(str(varvalue)));
+	}
+}
+
 BOOST_PYTHON_MODULE(domoticz_)
 {
     enum_<_eLogLevel>("loglevel")
@@ -2101,6 +2126,7 @@ BOOST_PYTHON_MODULE(domoticz_)
         ;
     def("log", PythonLog);
 	def("getuservariable",PythonGetUserVariable);
+	def("setuservariable",PythonSetUserVariable);
 }
 
 // from https://gist.github.com/octavifs/5362297
@@ -2160,7 +2186,7 @@ void CEventSystem::EvaluatePython(const std::string &reason, const std::string &
 
 		//object alldevices = dict();
 		object devices = domoticz_module.attr("devices");
-		object user_variables = domoticz_module.attr("user_variables");
+		//object user_variables = domoticz_module.attr("user_variables");
 		object domoticz_namespace = domoticz_module.attr("__dict__");
 
 		domoticz_namespace["event_system"] = ptr(this);
@@ -2227,31 +2253,31 @@ void CEventSystem::EvaluatePython(const std::string &reason, const std::string &
 		}
 		main_namespace["Security"] = secstatusw;*/
 
-		{
-			typedef std::map<unsigned long long, _tUserVariable>::iterator it_var;
-			for (it_var iterator = m_uservariables.begin(); iterator != m_uservariables.end(); ++iterator) {
-				_tUserVariable uvitem = iterator->second;
+		//{
+		//	typedef std::map<unsigned long long, _tUserVariable>::iterator it_var;
+		//	for (it_var iterator = m_uservariables.begin(); iterator != m_uservariables.end(); ++iterator) {
+		//		_tUserVariable uvitem = iterator->second;
 				//user_variables[uvitem.variableName] = uvitem;
-				if (uvitem.variableType == 0) {
-					//Integer
-					main_namespace[uvitem.variableName] = atoi(uvitem.variableValue.c_str());
-					user_variables[uvitem.variableName] = main_namespace[uvitem.variableName];
-				}
-				else if (uvitem.variableType == 1) {
-					//Float
-					main_namespace[uvitem.variableName] = atof(uvitem.variableValue.c_str());
-					user_variables[uvitem.variableName] = main_namespace[uvitem.variableName];
-				}
-				else {
-					//String,Date,Time
-					main_namespace[uvitem.variableName] = uvitem.variableValue;
-					user_variables[uvitem.variableName] = main_namespace[uvitem.variableName];
-				}
-			}
-		}
+		//		if (uvitem.variableType == 0) {
+		//			//Integer
+		//			main_namespace[uvitem.variableName] = atoi(uvitem.variableValue.c_str());
+		//			user_variables[uvitem.variableName] = main_namespace[uvitem.variableName];
+		//		}
+		//		else if (uvitem.variableType == 1) {
+		//			//Float
+		//			main_namespace[uvitem.variableName] = atof(uvitem.variableValue.c_str());
+		//			user_variables[uvitem.variableName] = main_namespace[uvitem.variableName];
+		//		}
+		//		else {
+		//			//String,Date,Time
+		//			main_namespace[uvitem.variableName] = uvitem.variableValue;
+		//			user_variables[uvitem.variableName] = main_namespace[uvitem.variableName];
+		//		}
+		//	}
+		//}
 
-		domoticz_namespace["user_variables"] = user_variables;
-		main_namespace["user_variables"] = user_variables;
+		//domoticz_namespace["user_variables"] = user_variables;
+		//main_namespace["user_variables"] = user_variables;
 		main_namespace["otherdevices_temperature"] = toPythonDict(m_tempValuesByName);
 		main_namespace["otherdevices_dewpoint"] = toPythonDict(m_dewValuesByName);
 		main_namespace["otherdevices_barometer"] = toPythonDict(m_baroValuesByName);
