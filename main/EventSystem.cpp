@@ -2093,27 +2093,23 @@ static object PythonGetUserVariable(std::string varname)
 	return object();
 }
 
-static void PythonSetUserVariable(std::string varname, object varvalue)
+static std::string PythonSetUserVariable(std::string varname, object varvalue)
 {
 	std::vector<std::string> sd = m_sql.GetUserVariable(varname);
 	if (sd.size() > 0)
 	{
-		m_sql.UpdateUserVariable(sd[0],sd[1],sd[2],extract<std::string>(str(varvalue)),false);
+		return m_sql.UpdateUserVariable(sd[0],sd[1],sd[2],extract<std::string>(str(varvalue)),false);
 	}
 	else
 	{
-		std::string vartype="2";
-		extract<float>isfloat(varvalue);
-		if (isfloat.check())
-		{
-			vartype="1";
-		}
-		extract<long>islong(varvalue);
-		if (islong.check())
-		{
-			vartype="0";
-		}
-		m_sql.SaveUserVariable(varname,vartype,extract<std::string>(str(varvalue)));
+		std::string vartype=extract<std::string>(varvalue.attr("__class__").attr("__name__"));
+		if (vartype=="int") { vartype="0"; }
+		else if (vartype=="long") { vartype="0"; }
+		else if (vartype=="float") { vartype="1"; }
+		else { vartype="2"; }
+		// Datetime not implemented yet.
+		// Note: Date in domoticz is not in ISO format.
+		return m_sql.SaveUserVariable(varname,vartype,extract<std::string>(str(varvalue)));
 	}
 }
 
@@ -2125,6 +2121,7 @@ BOOST_PYTHON_MODULE(domoticz_)
         .value("error", LOG_ERROR)
         ;
     def("log", PythonLog);
+
 	def("getuservariable",PythonGetUserVariable);
 	def("setuservariable",PythonSetUserVariable);
 }
@@ -2201,6 +2198,7 @@ void CEventSystem::EvaluatePython(const std::string &reason, const std::string &
 			_tDeviceStatus sitem = iterator->second;
 			object deviceStatus = domoticz_module.attr("Device")(sitem.ID, sitem.deviceName, sitem.devType, sitem.subType, sitem.switchtype, sitem.nValue, sitem.nValueWording, sitem.sValue, sitem.lastUpdate);
 			devices[sitem.deviceName] = deviceStatus;
+				//_log.Log(LOG_STATUS,"Python devices init %s: nValue %s nValueWording %s sValue %s",sitem.deviceName,sitem.nValue,sitem.nValueWording,sitem.sValue)
 		}
 		main_namespace["domoticz"] = ptr(this);
 		main_namespace["__file__"] = filename;
@@ -2280,6 +2278,7 @@ void CEventSystem::EvaluatePython(const std::string &reason, const std::string &
 		//main_namespace["user_variables"] = user_variables;
 		main_namespace["otherdevices_temperature"] = toPythonDict(m_tempValuesByName);
 		main_namespace["otherdevices_dewpoint"] = toPythonDict(m_dewValuesByName);
+		main_namespace["otherdevices_humidity"] = toPythonDict(m_humValuesByName);
 		main_namespace["otherdevices_barometer"] = toPythonDict(m_baroValuesByName);
 		main_namespace["otherdevices_utility"] = toPythonDict(m_utilityValuesByName);
 		main_namespace["otherdevices_rain"] = toPythonDict(m_rainValuesByName);

@@ -27,34 +27,29 @@ And you also have access to more:
 
 """
 try:
-	import domoticz_ #
-	def log(*args):
-		domoticz_.log(domoticz_.loglevel.norm," ".join([str(k) for k in args]))
-	def error(*args):
-		domoticz_.log(domoticz_.loglevel.error," ".join([str(k) for k in args]))
-	class UserVariables(dict):
-		def __getitem__(self,key):
-			return domoticz_.getuservariable(key)
-		def __setitem__(self,key,value):
-			if type(value)==int:
-				value=long(value)
-			oldvalue = domoticz_.getuservariable(key)
-			log("setting uservariable",key,"to",value,"was",oldvalue)
-			if oldvalue==None or type(oldvalue)==type(value):
-				domoticz_.setuservariable(key,value)
-			else:
-				raise ValueError("Attempt to assign value of type %s to user_variable of type %s"%(str(type(value)),str(type(oldvalue))))
+	import domoticz_
 except:
-	def log(*args):
-		print " ".join([str(k) for k in args])
-	def error(*args):
-		print "Error: " + " ".join([str(k) for k in args])
+	import domoticz_standalone as domoticz_
 
 import reloader
 import datetime
 import re
 
 reloader.auto_reload(__name__)
+
+def log(*args):
+	domoticz_.log(domoticz_.loglevel.norm," ".join([str(k) for k in args]))
+def error(*args):
+	domoticz_.log(domoticz_.loglevel.error," ".join([str(k) for k in args]))
+
+class UserVariables(dict):
+	def __getitem__(self,key):
+		return domoticz_.getuservariable(key)
+	def __setitem__(self,key,value):
+		retval=domoticz_.setuservariable(key,value)
+		log("Setting",key,"to",str(value),",",value.__class__.__name__,":",retval)
+		if retval!="OK":
+			raise ValueError(retval)
 
 def command(name, action, file):
 	if testing:
